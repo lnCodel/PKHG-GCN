@@ -1,9 +1,6 @@
 # PKIG-GCN
 The data and code for the paper "PKIG-GCN: Prior Knowledge and Isomorphic Graph Approximation Guided Graph Convolutional Network for Automated ASPECTS Scoring on Non-Contrast CT" <br />
 
-
-
-
 ## Requirements
 CUDA 11.7<br />
 Python 3.10.13<br /> 
@@ -16,12 +13,10 @@ scipy 1.11.3 <br />
 ## Usage
 
 ### 0. Installation
-* Install our modified nnUNet as below
+* Install our PKIG as below
   
 ```
-git clone https://github.com/GitHub-TXZ/AISCT-SAM.git
-cd AISCT-SAM
-pip install -e .
+git clone https://github.com/lnCodel/PKIG.git
 
 ```
 
