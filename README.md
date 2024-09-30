@@ -1,4 +1,4 @@
-# AISCT-SAM
+# PKIG-GCN
 The data and code for the paper "PKIG-GCN: Prior Knowledge and Isomorphic Graph Approximation Guided Graph Convolutional Network for Automated ASPECTS Scoring on Non-Contrast CT" <br />
 
 
