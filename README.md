@@ -1,4 +1,4 @@
-# PKIG-GCN
+# PKHG-GCN
 The data and code for the paper "PKHG-GCN: Prior Knowledge and Homophily Graph Approximation Guided Graph Convolutional Network for Automated ASPECTS Scoring on Non-Contrast CT" <br />
 
 ## Requirements
