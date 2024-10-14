@@ -16,7 +16,7 @@ scipy 1.11.3 <br />
 * Install our PKHG as below
   
 ```
-git clone https://github.com/lnCodel/PKIG.git
+git clone https://github.com/lnCodel/PKHG-GCN.git
 
 ```
 
