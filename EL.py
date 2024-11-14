@@ -16,7 +16,7 @@ class EL(torch.nn.Module):
                 nn.Linear(hidden, hidden, bias=True),
                 )
         self.matrix = nn.Parameter(torch.randn(1, input_dim)).to(opt.device)
-        self.binary_matrix = torch.round(torch.sigmoid(self.matrix))
+        self.binary_matrix = torch.round(torch.sigmoid(self.matrix))#MLP也可以
         ##伯努利分布生成掩码也可以
         self.cos = nn.CosineSimilarity(dim=1, eps=1e-8)
         self.input_dim = input_dim
