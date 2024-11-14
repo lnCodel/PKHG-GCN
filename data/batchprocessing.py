@@ -154,10 +154,7 @@ def subtraction(path, left, right):
     savemat(save_path, {f"feature": matrix})
 
 def normalization1(feature):
-    """标准化
-    公式：(原始值-均值)/方差
-    :return 范围任意，标准化后数据均值为0，标准差为1  (edgenet_input1 - edgenet_input1.mean(axis=0)) / edgenet_input1.std(axis=0)
-    """
+  
     de = list()
     columnmin = feature.min(axis=0)
     columnmax = feature.max(axis=0)
@@ -168,10 +165,7 @@ def normalization1(feature):
     return (feature - feature.mean(axis=0)) / feature.std(axis=0)
 
 def normalization(feature):
-    """标准化
-    公式：(原始值-均值)/方差
-    :return 范围任意，标准化后数据均值为0，标准差为1
-    """
+ 
     de = list()
 
     columnmin = feature.min(axis=0)
