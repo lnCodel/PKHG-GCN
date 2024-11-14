@@ -21,7 +21,7 @@ class OptInit():
         parser.add_argument('--edropout', type=float, default=0.4, help='edge dropout rate')
         parser.add_argument('--dropout', default=0.1, type=float, help='ratio of dropout')
         parser.add_argument('--num_classes', type=int, default=2, help='number of classes')
-        parser.add_argument('--ckpt_path', type=str, default='./save_models/ev_gcn', help='checkpoint path to save trained models')
+        parser.add_argument('--ckpt_path', type=str, default='./save_models/PKIG-GCN', help='checkpoint path to save trained models')
 
         args = parser.parse_args()
 
