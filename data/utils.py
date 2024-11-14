@@ -7,93 +7,11 @@ from scipy.spatial import distance
 import pandas as pd
 
 root_folder = '.'
-data_folder = os.path.join(root_folder, 'ABIDE_pcp/cpac/filt_noglobal')
 
 
 ta = ["M1","M2","M3","M4","M5","M6","L","I","C","IC"]
 index = {"M1":7,"M2":8,"M3":9,"M4":10,"M5":11,"M6":12,"L":4,"I":5,"C":3,"IC":6}
 
-
-
-def fetch_filenames(subject_IDs, file_type):
-
-    """
-        subject_list : list of short subject IDs in string format
-        file_type    : must be one of the available file types
-
-    returns:
-
-        filenames    : list of filetypes (same length as subject_list)
-    """
-
-    import glob
-
-    # Specify file mappings for the possible file types
-    filemapping = {'func_preproc': '_func_preproc.nii.gz',
-                   'rois_ho': '_rois_ho.1D'}
-
-    # The list to be filled
-    filenames = []
-
-    # Fill list with requested file paths
-    for i in range(len(subject_IDs)):
-        os.chdir(r"")  # os.path.join(data_folder, subject_IDs[i]))
-        try:
-            filenames.append(glob.glob('*' + subject_IDs[i] + filemapping[file_type])[0])
-        except IndexError:
-            # Return N/A if subject ID is not found
-            filenames.append('N/A')
-
-    return filenames
-
-
-# Get timeseries arrays for list of subjects
-def get_timeseries(subject_list, atlas_name):
-    """
-        subject_list : list of short subject IDs in string format
-        atlas_name   : the atlas based on which the timeseries are generated e.g. aal, cc200
-
-    returns:
-        time_series  : list of timeseries arrays, each of shape (timepoints x regions)
-    """
-
-    timeseries = []
-    for i in range(len(subject_list)): #subject_list
-        subject_folder = os.path.join(r"", subject_list[i])
-        ro_file = [f for f in os.listdir(subject_folder) if f.endswith('_rois_' + atlas_name + '.1D')]
-        fl = os.path.join(subject_folder, ro_file[0])
-        print("Reading timeseries file %s" %fl)
-        timeseries.append(np.loadtxt(fl, skiprows=0))
-
-    return timeseries
-
-
-# Compute connectivity matrices
-def subject_connectivity(timeseries, subject, atlas_name, kind, save=True, save_path=r""):
-    """
-        timeseries   : timeseries table for subject (timepoints x regions)
-        subject      : the subject ID
-        atlas_name   : name of the parcellation atlas used
-        kind         : the kind of connectivity to be used, e.g. lasso, partial correlation, correlation
-        save         : save the connectivity matrix to a file
-        save_path    : specify path to save the matrix if different from subject folder
-
-    returns:
-        connectivity : connectivity matrix (regions x regions)
-    """
-
-    print("Estimating %s matrix for subject %s" % (kind, subject))
-
-    if kind in ['tangent', 'partial correlation', 'correlation']:
-        conn_measure = connectome.ConnectivityMeasure(kind=kind)
-        connectivity = conn_measure.fit_transform([timeseries])[0]
-
-    if save:
-        subject_file = os.path.join(save_path, subject,
-                                    subject + '_' + atlas_name + '_' + kind.replace(' ', '_') + '.mat')
-        sio.savemat(subject_file, {'connectivity': connectivity})
-
-    return connectivity
 
 # read excel
 def readexcel1(path):
@@ -204,33 +122,6 @@ def get_subject_lable_pro(subject_list,score):
         y[i] = abs(int(scores_dict[subject_list[i]]))  # 数组，标签
     return y
 
-
-
-
-def site_percentage(train_ind, perc, subject_list):
-    """
-        train_ind    : indices of the training samples
-        perc         : percentage of training set used
-        subject_list : list of subject IDs
-
-    return:
-        labeled_indices      : indices of the subset of training samples
-    """
-
-    train_list = subject_list[train_ind]
-    sites = get_subject_score(train_list, score='SITE_ID')
-    unique = np.unique(list(sites.values())).tolist()
-    site = np.array([unique.index(sites[train_list[x]]) for x in range(len(train_list))])
-
-    labeled_indices = []
-
-    for i in np.unique(site):
-        id_in_site = np.argwhere(site == i).flatten()
-
-        num_nodes = len(id_in_site)
-        labeled_num = int(round(perc * num_nodes))
-        labeled_indices.extend(train_ind[id_in_site[:labeled_num]])
-    return labeled_indices
 
 def get_networks(subjests_list,SORCE):
     """
