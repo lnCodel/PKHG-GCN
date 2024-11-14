@@ -141,7 +141,7 @@ def Over_all(named, asdw, a):
     pred = df[:, b]
     pred1 = np.array(pred).flatten()
     pred = np.sum(pred, axis=1)
-    print(asdw,"Sdasdasdasd")
+    print(asdw,"1")
     median = np.median(10-true)
     q1 = np.percentile(10-true, 25)
     q3 = np.percentile(10-true, 75)
@@ -150,7 +150,7 @@ def Over_all(named, asdw, a):
     pred[pred >= 6] = 1
     true[true < 6] = 0
     true[true >= 6] = 1
-    print("4为界限:", accuracy(pred,true))
+    print("二分类:", accuracy(pred,true))
     print("All_region:", accuracy(pred1, true1))
     print(auc(pred, true))
     print()
