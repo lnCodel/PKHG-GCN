@@ -31,7 +31,7 @@ def write_excel_xls_append(path, value):
     print("xls格式表格【追加】写入数据成功！")
 
 if __name__ == '__main__':
-    named = "CKSA_CK"
+    named = "PKIG-GCN"
     a = 1
     if a == 0:
         for asdw in [0.55]:
