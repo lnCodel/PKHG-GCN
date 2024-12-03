@@ -1,4 +1,4 @@
-from PKIG_GCN_step import PKIG
+from PKHG_GCN_step import PKIG
 from opt1 import *
 from utils.metrics import accuracy, auc, prf, save, auc_la,sa,to_icc,kappa,Over_all,interval1_std
 from dataloader import dataloader
