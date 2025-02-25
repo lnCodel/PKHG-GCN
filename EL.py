@@ -5,9 +5,8 @@ from torch import nn
 from opt import *
 opt = OptInit().initialize()
 class EL(torch.nn.Module):
-    def __init__(self, input_dim, dropout=0.3, weidu=64):  #1
+    def __init__(self, input_dim, dropout=0.3, hidden=512):  #1
         super(EL, self).__init__()
-        hidden = weidu
         self.parser = nn.Sequential(
                 nn.Linear(input_dim, hidden, bias=True),
                 nn.ReLU(inplace=True),
