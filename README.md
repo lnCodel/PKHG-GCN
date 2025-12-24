@@ -1,5 +1,6 @@
 # PKHG-GCN
-The data and code for the paper "PKHG-GCN: Prior Knowledge and Homophily Graph Approximation Guided Graph Convolutional Network for Automated ASPECTS Scoring on Non-Contrast CT" <br />
+The data and code for the paper "PKHG-GCN: Prior Knowledge and Homophily Graph Approximation Guided Graph Convolutional Network for Automated ASPECTS Scoring on Non-Contrast CT".  <br />
+This repository provides the official PyTorch implementation of PKHG-GCN, proposed in our paper. The code is fully open-sourced to ensure reproducibility of experimental results reported in the paper. <br />
 
 ## Requirements
 CUDA 11.7<br />
