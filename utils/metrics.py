@@ -1,39 +1,76 @@
+# ============================
+# Imports
+# ============================
+
 from math import log10
-import torch
-import numpy as np
-import torch.nn.functional as F
-import pandas as pd
 import os
 import glob
 import csv
 
-from sklearn.metrics import (
-    roc_auc_score,
-    precision_recall_fscore_support,
-    cohen_kappa_score,
-    confusion_matrix
-)
+import torch
+import torch.nn.functional as F
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
 from scipy.special import softmax
 from scipy.stats import t
 import scipy.stats
+
 import pingouin as pg
 
+# Sklearn metrics
+from sklearn.metrics import (
+    roc_auc_score,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    precision_recall_fscore_support,
+    confusion_matrix,
+    classification_report,
+    cohen_kappa_score
+)
+
+# Medical image related metrics
 from medpy.metric.binary import sensitivity, specificity
 
-# Global flag controlling whether inputs are logits or class labels
+
+# ============================
+# Global flag
+# ============================
+
+# a = 1: input is logits (need argmax)
+# a = 0: input is already predicted labels
 a = 1
 
 
-def PSNR(mse, peak=1.):
+# ============================
+# Image quality metric
+# ============================
+
+def PSNR(mse, peak=1.0):
     """
     Compute Peak Signal-to-Noise Ratio (PSNR).
+
+    Args:
+        mse (float): Mean Squared Error
+        peak (float): Maximum possible signal value
+
+    Returns:
+        float: PSNR value in dB
     """
     return 10 * log10((peak ** 2) / mse)
 
 
+# ============================
+# Utility class
+# ============================
+
 class AverageMeter(object):
     """
-    Computes and stores the current value, sum, and running average.
+    Computes and stores the current value and running average.
+    Commonly used during training to track loss or accuracy.
     """
 
     def __init__(self):
@@ -46,20 +83,42 @@ class AverageMeter(object):
         self.count = 0
 
     def update(self, val, n=1):
+        """
+        Update meter with new value.
+
+        Args:
+            val (float): current value
+            n (int): number of samples
+        """
         self.val = val
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
 
 
+# ============================
+# Binary classification accuracy
+# ============================
+
 def accuracy(preds, labels):
     """
-    Compute accuracy, specificity, sensitivity, and related statistics.
-    """
-    x = np.sum(labels)
-    y = len(labels) - x
+    Compute accuracy, sensitivity, and specificity.
 
-    # Convert logits to predicted labels if required
+    Args:
+        preds (ndarray): model outputs (logits or labels)
+        labels (ndarray): ground truth labels
+
+    Returns:
+        correct_num (int): number of correct predictions
+        acc (float): accuracy
+        spe (float): specificity
+        sen (float): sensitivity
+        spe_sum (int): true negatives count
+        sen_sum (int): true positives count
+    """
+    x = np.sum(labels)                 # number of positive samples
+    y = len(labels) - x                # number of negative samples
+
     if a == 0:
         pred = preds
     else:
@@ -69,6 +128,7 @@ def accuracy(preds, labels):
     sen = sensitivity(pred, labels)
 
     correct_prediction = np.equal(pred, labels).astype(np.float32)
+
     sen_sum = round(x * sen)
     spe_sum = round(y * spe)
 
@@ -82,17 +142,24 @@ def accuracy(preds, labels):
     )
 
 
+# ============================
+# Save prediction probabilities
+# ============================
+
 def sa(sub_ids, preds, fold, n):
     """
-    Save subject-level predictions and class probabilities to a CSV file.
+    Save subject-level predictions and probabilities to CSV.
+
+    Args:
+        sub_ids (list): subject IDs
+        preds (ndarray): logits
+        fold (int): fold index
+        n (int): offset index
     """
     base_path = r"/home/lining/Data/Res/"
     save_path = os.path.join(base_path, f"I_{fold}.csv")
 
-    # Predicted class labels
     A = np.argmax(preds, 1)
-
-    # Softmax probabilities
     pos_probs = softmax(preds, axis=1)
 
     info = {
@@ -112,14 +179,24 @@ def sa(sub_ids, preds, fold, n):
     df.to_csv(save_path)
 
 
+# ============================
+# Confidence interval
+# ============================
+
 def compute_confidence_interval(data):
     """
-    Compute the 95% confidence interval of the mean.
+    Compute 95% confidence interval for mean.
+
+    Args:
+        data (array-like)
+
+    Returns:
+        (lower_bound, upper_bound)
     """
     mean = np.mean(data)
     std = np.std(data)
     n = len(data)
-    z = 1.96  # Z-score for 95% confidence interval
+    z = 1.96
 
     lower_bound = mean - z * (std / np.sqrt(n))
     upper_bound = mean + z * (std / np.sqrt(n))
@@ -127,121 +204,193 @@ def compute_confidence_interval(data):
     return lower_bound, upper_bound
 
 
+# ============================
+# Save logits and labels
+# ============================
+
+def save_logit(preds, labels, named, region, asdw):
+    """
+    Save raw logits and labels to CSV files.
+    """
+    base_path = r"/homeb/lining/Data/experiment/KSR_logit123"
+    save_path = os.path.join(base_path, named, str(asdw))
+    os.makedirs(save_path, exist_ok=True)
+
+    with open(os.path.join(save_path, f"{region}.csv"), "a", newline="") as f:
+        writer = csv.writer(f)
+        for row in preds:
+            writer.writerow(row)
+
+    with open(os.path.join(save_path, f"{region}_label.csv"), "a", newline="") as f:
+        writer = csv.writer(f)
+        for label in labels:
+            writer.writerow([label])
+
+
+# ============================
+# Save final predictions
+# ============================
+
 def save(preds, labels, local, named, region, asdw):
     """
-    Save prediction results for a specific region into a CSV file.
+    Save predicted labels with subject IDs.
     """
     preds = np.argmax(preds, 1)
 
-    base_path = r"/homeb/lining/Data/experiment/KSR"
-    save_path = os.path.join(base_path, named)
-
-    # Create directories if they do not exist
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    save_path = os.path.join(save_path, str(asdw))
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    base_path = r"/homeb/lining/Data/experiment/Pro"
+    save_path = os.path.join(base_path, named, str(asdw))
+    os.makedirs(save_path, exist_ok=True)
 
     save_path_csv = os.path.join(save_path, f"{region}.csv")
 
-    with open(save_path_csv, mode="a", newline='') as file:
-        writer = csv.writer(file)
+    with open(save_path_csv, "a", newline="") as f:
+        writer = csv.writer(f)
 
-        # Write header if file is empty
-        if file.tell() == 0:
-            header = ["ids", f"{region}_true", f"{region}_pred"]
-            writer.writerow(header)
+        if f.tell() == 0:
+            writer.writerow(["ids", f"{region}_true", f"{region}_pred"])
 
-        # Write prediction rows
         for i in range(len(preds)):
-            row = [local[i], labels[i], preds[i]]
-            writer.writerow(row)
+            writer.writerow([local[i], labels[i], preds[i]])
 
 
-def Over_all(named, asdw, a):
+# ============================
+# Confusion matrix visualization
+# ============================
+
+def show_graph(conf_matrix_norm, conf_matrix):
     """
-    Aggregate regional prediction CSV files and compute overall metrics.
+    Visualize normalized confusion matrix.
     """
-    base_path = r"/homeb/lining/Data/experiment/KSR"
-    save_path = os.path.join(base_path, named, str(asdw))
-    save_path1 = os.path.join(save_path, f"{named}_All")
+    plt.rcParams.update({'font.size': 12})
+    plt.imshow(conf_matrix_norm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.colorbar()
 
-    if not os.path.exists(save_path1):
-        os.makedirs(save_path1)
+    class_labels = [
+        'Others\n[0-6]',
+        'Mild lesions\n[7-9]',
+        'Normal tissue\n[10]'
+    ]
 
-    # Collect all region CSV files
-    csv_files = glob.glob(os.path.join(save_path, '*.csv'))
+    tick_marks = np.arange(len(class_labels))
+    plt.xticks(tick_marks, class_labels)
+    plt.yticks(tick_marks, class_labels)
+    plt.gca().xaxis.set_ticks_position('top')
 
-    # Sort and remove duplicate IDs in each CSV file
-    for csv_file in csv_files:
-        df = pd.read_csv(csv_file)
-        df = df.sort_values(by='ids', ascending=True)
-        df = df.drop_duplicates(subset='ids', keep='first')
-        df.to_csv(csv_file, index=False)
+    thresh = conf_matrix_norm.max() / 2.
+    for i, j in np.ndindex(conf_matrix_norm.shape):
+        plt.text(
+            j, i,
+            f"{conf_matrix_norm[i, j] * 100:.2f}%",
+            ha="center",
+            va="bottom",
+            fontsize=14,
+            color="white" if conf_matrix_norm[i, j] > thresh else "black"
+        )
 
-    # Merge all region CSV files
-    combined_data = pd.DataFrame()
-    column_name = ["ids"]
+    plt.ylabel("Ground truth")
+    plt.xlabel("Prediction")
+    plt.tight_layout()
+    plt.show()
 
-    for csv_file in csv_files:
-        base = os.path.basename(csv_file)
-        df = pd.read_csv(csv_file)
 
-        column_name.append(f"{base[:-4]}_true")
-        column_name.append(f"{base[:-4]}_pred")
+# ============================
+# Per-class specificity
+# ============================
 
-        if not combined_data.empty:
-            df = df.iloc[:, 1:]
+def specificity_per_class1(y_true, y_pred):
+    """
+    Compute specificity for each class in multi-class classification.
+    """
+    cm = confusion_matrix(y_true, y_pred)
+    specificity = []
 
-        combined_data = pd.concat([combined_data, df], axis=1, ignore_index=True)
+    for i in range(cm.shape[0]):
+        TN = cm.sum() - (cm[i, :].sum() + cm[:, i].sum() - cm[i, i])
+        FP = cm[:, i].sum() - cm[i, i]
+        specificity.append(TN / (TN + FP) if (TN + FP) > 0 else 0)
 
-    save_path_new = os.path.join(save_path1, "All.csv")
-    combined_data.columns = column_name
-    combined_data.to_csv(save_path_new, index=False)
+    return np.array(specificity)
 
-    print(f'Merged CSV files saved to {save_path_new}')
 
-    # Load merged data for evaluation
-    df = pd.read_csv(save_path_new).iloc[:, 1:].values
+# ============================
+# Intraclass Correlation Coefficient (ICC)
+# ============================
 
-    # Separate true and predicted labels
-    a_idx = list(range(0, 20, 2))
-    b_idx = list(range(1, 20, 2))
+def to_icc(preds, labels):
+    """
+    Compute ICC between predictions and labels.
+    """
+    if a == 0:
+        pred = preds
+    else:
+        pred = np.argmax(preds, 1)
 
-    true = df[:, a_idx]
-    true1 = true.flatten()
-    true = np.sum(true, axis=1)
+    matrix = confusion_matrix(labels, pred)
 
-    pred = df[:, b_idx]
-    pred1 = pred.flatten()
-    pred = np.sum(pred, axis=1)
+    pred_list, real_list = [], []
+    for i in range(len(matrix)):
+        for j in range(len(matrix)):
+            value = matrix[i][j]
+            pred_list.extend([j] * value)
+            real_list.extend([i] * value)
 
-    # Compute ICC and binary classification metrics
-    print(asdw, "1")
-    print(to_icc(preds=(10 - pred), labels=(10 - true)))
+    icc = icc_caculate(pred_list, real_list)
+    return icc["ICC"][5]
 
-    pred[pred < 6] = 0
-    pred[pred >= 6] = 1
-    true[true < 6] = 0
-    true[true >= 6] = 1
 
-    print("Binary classification:", accuracy(pred, true))
-    print("All regions:", accuracy(pred1, true1))
-    print(auc(pred, true))
-    print()
+def icc_caculate(pred_list, real_list):
+    """
+    Calculate ICC using pingouin.
+    """
+    ids = list(range(len(pred_list))) * 2
+    judges = ["pred"] * len(pred_list) + ["real"] * len(real_list)
+    scores = pred_list + real_list
 
+    df = pd.DataFrame({
+        "id": ids,
+        "judge": judges,
+        "score": scores
+    })
+
+    return pg.intraclass_corr(
+        data=df,
+        targets="id",
+        raters="judge",
+        ratings="score"
+    )
+
+
+# ============================
+# Micro-averaged specificity
+# ============================
+
+def spe_three(y_true, y_pred):
+    """
+    Compute micro-averaged specificity for multi-class classification.
+    """
+    cm = confusion_matrix(y_true, y_pred)
+
+    TN, FP = 0, 0
+    for i in range(cm.shape[0]):
+        TN += np.sum(np.delete(np.delete(cm, i, 0), i, 1))
+        FP += np.sum(cm[:, i]) - cm[i, i]
+
+    return TN / (TN + FP)
+
+
+# ============================
+# AUC from saved CSV
+# ============================
 
 def auc_la():
     """
-    Load prediction results from CSV and compute evaluation metrics.
+    Load saved prediction CSV and compute AUC, sensitivity, specificity, and kappa.
     """
     base_path = r"/home/lining/GCN/M3/CKSA/data/Result"
     save_path = os.path.join(base_path, "All_I.csv")
 
     if not os.path.exists(save_path):
-        return 0, 0, 0
+        return 0, 0, 0, 0
 
     df = pd.read_csv(save_path)
 
@@ -254,9 +403,13 @@ def auc_la():
     return auc_out, se, sp, ka
 
 
-def auc(preds, labels, is_logit=True):
+# ============================
+# AUC / PRF / Kappa helpers
+# ============================
+
+def auc(preds, labels):
     """
-    Compute AUC score from predictions and labels.
+    Compute AUC using predicted labels.
     """
     if a == 0:
         pred = preds
@@ -264,14 +417,12 @@ def auc(preds, labels, is_logit=True):
         pred = np.argmax(preds, 1)
 
     try:
-        auc_out = roc_auc_score(labels, pred)
+        return roc_auc_score(labels, pred)
     except:
-        auc_out = 0
-
-    return auc_out
+        return 0
 
 
-def prf(preds, labels, is_logit=True):
+def prf(preds, labels):
     """
     Compute precision, recall, and F1-score.
     """
@@ -280,94 +431,27 @@ def prf(preds, labels, is_logit=True):
     else:
         pred = np.argmax(preds, 1)
 
-    p, r, f, s = precision_recall_fscore_support(
-        labels, pred, average='binary'
-    )
+    p, r, f, _ = precision_recall_fscore_support(labels, pred, average="binary")
     return [p, r, f]
 
 
 def interval1_std(data):
     """
-    Compute half-width of the confidence interval based on t-distribution.
+    Compute 95% confidence interval radius.
     """
     mean = np.mean(data)
-    std_data = np.std(data) / np.sqrt(len(data))
-    confidence = 0.95
-    n = len(data)
-    dof = n - 1
-
-    interval = t.interval(confidence, dof, loc=mean, scale=std_data)
-    radius = (interval[1] - interval[0]) / 2
-
-    return radius
+    std_err = np.std(data) / np.sqrt(len(data))
+    interval = t.interval(0.95, len(data) - 1, loc=mean, scale=std_err)
+    return (interval[1] - interval[0]) / 2
 
 
 def kappa(preds, GT):
     """
-    Compute Cohen's Kappa coefficient.
+    Compute Cohen's Kappa score.
     """
     if a == 0:
         pred = preds
     else:
         pred = np.argmax(preds, 1)
 
-    ka = cohen_kappa_score(pred, GT)
-    return ka
-
-
-def to_icc(preds, labels):
-    """
-    Compute Intraclass Correlation Coefficient (ICC) from predictions and labels.
-    """
-    if a == 0:
-        pred = preds
-    else:
-        pred = np.argmax(preds, 1)
-
-    matrix = confusion_matrix(labels, pred)
-
-    pred_list = []
-    real_list = []
-
-    # Expand confusion matrix into label lists
-    leng = len(matrix)
-    for i in range(leng):
-        for j in range(leng):
-            value = matrix[i][j]
-            pred_list.extend([j] * value)
-            real_list.extend([i] * value)
-
-    icc = icc_caculate(pred_list, real_list)
-    icc_value = icc["ICC"][5]
-
-    return icc_value
-
-
-def icc_caculate(pred_list, real_list):
-    """
-    Calculate ICC using Pingouin based on prediction and ground-truth lists.
-    """
-    id_list = list(range(len(pred_list)))
-    id_list.extend(range(len(real_list)))
-
-    judge = ['pre'] * len(pred_list)
-    judge.extend(['real'] * len(pred_list))
-
-    score_list = pred_list.copy()
-    score_list.extend(real_list)
-
-    dic = {
-        "id": id_list,
-        "judge": judge,
-        "score": score_list
-    }
-
-    excel = pd.DataFrame(dic)
-    icc = pg.intraclass_corr(
-        data=excel,
-        targets='id',
-        raters='judge',
-        ratings='score'
-    )
-
-    return icc
+    return cohen_kappa_score(pred, GT)
