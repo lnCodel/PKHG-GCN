@@ -17,8 +17,8 @@ MAP = {
 # Each parameter set defines an independent Random Forest model
 param_sets = [
     {'n_estimators': 500, 'criterion': 'entropy'},
-    {'n_estimators': 450, 'criterion': 'gini'},
-    {'n_estimators': 550, 'criterion': 'gini'},
+    {'n_estimators': 350, 'criterion': 'gini'},
+    {'n_estimators': 1000, 'criterion': 'gini'},
     {'n_estimators': 500, 'criterion': 'gini'},
     {'n_estimators': 700, 'criterion': 'gini'}
 ]
