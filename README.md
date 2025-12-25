@@ -30,7 +30,7 @@ Clone this repository:
 git clone https://github.com/lnCodel/PKHG-GCN.git
 
 
-1. Data Preprocessing Pipeline
+### 1. Data Preprocessing Pipeline
 1.1 Skull Stripping
 
 After converting the DICOM files of the dataset to NIfTI format, skull stripping is performed following the instructions provided in the following repository:
