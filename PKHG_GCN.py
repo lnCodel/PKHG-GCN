@@ -48,7 +48,7 @@ class PKHG(torch.nn.Module):
             cas = edge_weight[mask[i]] > threshold
             val[i] = torch.sum(edge_weight[mask[i]][cas])
         return val
-    def step(self,index, weight):
+    def CBSS(self,index, weight):
         adj_matrix_sparse = torch.sparse_coo_tensor(index, weight, (self.n, self.n))
         A = adj_matrix_sparse.to_dense()
         A = torch.where(A >= self.gl, torch.tensor(1).to(opt.device), torch.tensor(0).to(opt.device))
@@ -67,7 +67,8 @@ class PKHG(torch.nn.Module):
         edge_weight = torch.squeeze(self.edge_net(edgenet_input))
         tensor_zeros = torch.zeros(features_hea.shape[0])
         #val = self.Select_anchor(edge_weight, mask, tensor_zeros, threshold)
-        val = self.step(edge_index, edge_weight)
+        # CBSS
+        val = self.CBSS(edge_index, edge_weight)
         edge_weight_post = 1 - edge_weight
         merged_tensor = torch.stack((edge_weight_post, edge_weight), dim=1)
         edge_weight01 = (edge_weight > threshold).long()
