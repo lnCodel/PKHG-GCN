@@ -58,21 +58,24 @@ In addition, the script ```analyze_common_top_features.py``` is provided to anal
 ### Model Training and Evaluation
 
 The features selected by the Random Forest are used for training and testing the proposed PKHG-GCN model.
-The complete training and evaluation pipeline is implemented in ```train_eval_PKIG.py```.
+The complete training and evaluation pipeline is implemented in ```train_eval_PKHG.py```.
 
 After completing the data preprocessing, run the following command:
 
 ```bash
-python train_eval_PKIG.py --train=1
+python train_eval_PKHG.py --train=1
 ```
 To get a detailed description for available arguments, please run:
 
 ```bash
-python train_eval_PKIG.py --help
+python train_eval_PKHG.py --help
 ```
 Evaluation:
 ```bash
-python train_eval_PKIG.py --train=0
+python train_eval_PKHG.py --train=0
 ```
-
+If you have obtained the results for each region through the above training and inference procedures and would like to obtain additional experimental results, you can run:
+```bash
+python python train_eval_PKHG.py --train=3
+```
 ---
