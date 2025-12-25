@@ -9,9 +9,68 @@ import time
 import torch
 import torch.nn.functional as F  # Import neural network functions
 import numpy as np
+from thop import profile
+import torch
 
 # Define the number of regions (nodes in the graph)
 region_number = 10
+def count_parameters(model):
+    """
+    Count the number of trainable parameters in a model.
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+import torch
+from thop import profile
+
+def compute_flops_and_params(
+    model,
+    x_dis,
+    x_hea,
+    edge_index,
+    edge_attr,
+    edge_mask,
+    x,
+    device=None
+):
+    """
+    Compute FLOPs and number of parameters for a GNN model
+    using a single forward pass.
+
+    Args:
+        model (torch.nn.Module): GNN model
+        x_dis (Tensor): node features (distance branch)
+        x_hea (Tensor): node features (head branch)
+        edge_index (Tensor): graph edge index [2, E]
+        edge_attr (Tensor): edge attributes
+        edge_mask (Tensor): edge mask
+        x (Tensor): auxiliary node features
+        device (torch.device, optional): cpu or cuda
+
+    Returns:
+        flops (float): number of FLOPs
+        params (float): number of trainable parameters
+    """
+
+    model.eval()
+
+    if device is not None:
+        model = model.to(device)
+        x_dis = x_dis.to(device)
+        x_hea = x_hea.to(device)
+        edge_index = edge_index.to(device)
+        edge_attr = edge_attr.to(device)
+        edge_mask = edge_mask.to(device)
+        x = x.to(device)
+
+    with torch.no_grad():
+        flops, params = profile(
+            model,
+            inputs=(x_dis, x_hea, edge_index, edge_attr, edge_mask, x),
+            verbose=False
+        )
+
+    return flops, params
 
 # Main execution block
 if __name__ == '__main__':
