@@ -66,7 +66,8 @@ class PKHG(torch.nn.Module):
         threshold = self.gl
         edge_weight = torch.squeeze(self.edge_net(edgenet_input))
         tensor_zeros = torch.zeros(features_hea.shape[0])
-        #val = self.Select_anchor(edge_weight, mask, tensor_zeros, threshold)
+        # another CBSS
+        #val = self.Select(edge_weight, mask, tensor_zeros, threshold)
         # CBSS
         val = self.CBSS(edge_index, edge_weight)
         edge_weight_post = 1 - edge_weight
