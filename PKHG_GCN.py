@@ -7,7 +7,7 @@ from EL import EL
 from opt1 import *
 import math
 opt = OptInit().initialize()
-class PKIG(torch.nn.Module):
+class PKHG(torch.nn.Module):
     def __init__(self, input_dim, num_classes, dropout, edgenet_input_dim, edge_dropout, hgc, lg,lg1,gl=0.5, K1=4):
         super(PKIG, self).__init__()
         K = 4
