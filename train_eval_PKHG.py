@@ -229,9 +229,11 @@ if __name__ == '__main__':
                                                 # Identify top-k samples for focused training (hard example mining)
                                                 proportion1 = 0.1
                                                 num_size = int(len(train_ind) * proportion1)
+                                                # HGA
                                                 topk_index = dl.find_k_largest_indices(num_size, train_ind, test_ind, [-1], val)
                                                 
                                                 # Calculate classification loss with emphasis on challenging samples
+                                                # HGA
                                                 loss_cls = 0.9 * loss_fn(node_logits[train_ind], labels[train_ind]) + \
                                                            0.1 * loss_fn(node_logits[topk_index], labels[topk_index])
                                                 
