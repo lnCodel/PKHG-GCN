@@ -22,7 +22,7 @@ The code is fully open-sourced to ensure the reproducibility of all experimental
 
 ## Usage
 
-### 0. Installation
+### Installation
 
 Clone this repository:
 
@@ -30,7 +30,7 @@ Clone this repository:
 git clone https://github.com/lnCodel/PKHG-GCN.git
 ```
 
-###  1. Data Preprocessing Pipeline
+### Data Preprocessing Pipeline
 
 #### Skull Stripping
 
