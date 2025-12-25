@@ -97,23 +97,23 @@ if __name__ == '__main__':
                                     edge_index, edgenet_input, edge_labels, train_labels, edge_mask_numpy = dl.get_PAE_inputs(region, train_ind)
                                     num_edge = edge_index.shape[1]
                                     
-                                    # Normalize edge features
+                                    # Normalize edge features using standardization
                                     edgenet_input = (edgenet_input - edgenet_input.mean(axis=0)) / edgenet_input.std(axis=0)
                                     
-                                    # Initialize the PKHG-GCN model
+                                    # Initialize the PKHG-GCN model with specified parameters
                                     model = PKHG(node_ftr_dis.shape[1], opt.num_classes, dropout[region],
                                                  edge_dropout=edropout[region], hgc=opt.hgc,
                                                  lg=opt.lg, edgenet_input_dim=edgenet_input.shape[1] // 2, lg1=opt.lg1,
                                                  gl=asdw, yuan_input=node_ftr_dis.shape[1])
                                     model = model.to(opt.device)  # Move model to appropriate device (CPU/GPU)
                                     
-                                    # Calculate class weights for imbalanced data
+                                    # Calculate class weights for imbalanced data handling
                                     a = sum(y[train_ind])
                                     b = len(y[train_ind])
                                     c = (b - a) / a
                                     weights = torch.tensor([1, c], dtype=torch.float).to(opt.device)
                                     
-                                    # Define loss functions
+                                    # Define loss functions based on data augmentation flag
                                     if da == 0:
                                         loss_fn = torch.nn.CrossEntropyLoss()
                                         loss_fn1 = torch.nn.CrossEntropyLoss()
@@ -121,10 +121,10 @@ if __name__ == '__main__':
                                         loss_fn = torch.nn.CrossEntropyLoss(weight=weights)  # Weighted loss for class imbalance
                                         loss_fn1 = torch.nn.CrossEntropyLoss()
                                     
-                                    # Set up optimizer
+                                    # Set up optimizer with learning rate and weight decay
                                     optimizer = torch.optim.Adam(model.parameters(), lr=lr[region], weight_decay=opt.wd)
                                     
-                                    # Convert data to PyTorch tensors and move to device
+                                    # Convert all data to PyTorch tensors and move to appropriate device
                                     features_cuda_dis = torch.tensor(node_ftr_dis, dtype=torch.float32).to(opt.device)
                                     features_cuda_hea = torch.tensor(node_ftr_hea, dtype=torch.float32).to(opt.device)
                                     features_cuda = torch.tensor(X, dtype=torch.float32).to(opt.device)
@@ -133,13 +133,13 @@ if __name__ == '__main__':
                                     labels = torch.tensor(y, dtype=torch.long).to(opt.device)
                                     edge_mask = torch.tensor(edge_mask_numpy, dtype=torch.long).to(opt.device)
                                     edge_labels = torch.tensor(edge_labels, dtype=torch.long).to(opt.device)
-                                    one_shot = F.one_hot(edge_labels)  # Convert to one-hot encoding
+                                    one_shot = F.one_hot(edge_labels)  # Convert to one-hot encoding for edge classification
                                     
-                                    # Define model save path
+                                    # Define model save path with fold and region information
                                     fold_model_path = opt.ckpt_path + "/fold{}_region{}_method_{}__{}.pth".format(fold, region, k, da, asdw)
                                     n_samples = X.shape[0] // region_number
                                     
-                                    # Prepare masks for correlated samples
+                                    # Prepare masks for correlated samples in contrastive learning
                                     mask_pos, mask_neg = dl.mask_correlated_samples_pos(R, L, node_ftr_dis.shape[0], train_ind, opt)
 
                                     # Training function definition
@@ -147,7 +147,7 @@ if __name__ == '__main__':
                                         print("  Number of training samples %d" % len(train_ind))
                                         print("  Start training...\r\n")
                                         
-                                        # Initialize tracking variables
+                                        # Initialize tracking variables for monitoring training progress
                                         f1 = 0
                                         loss_train_list = []
                                         loss_test_list = []
@@ -155,19 +155,19 @@ if __name__ == '__main__':
                                         test_acc_list = []
                                         c = 0
                                         
-                                        # Training loop
+                                        # Training loop over specified number of iterations
                                         for epoch in range(num_iter[region]):
                                             model.train()  # Set model to training mode
-                                            optimizer.zero_grad()  # Clear gradients
+                                            optimizer.zero_grad()  # Clear gradients from previous iteration
                                             
                                             # Forward pass with gradient computation enabled
                                             with torch.set_grad_enabled(True):
-                                                # Model forward pass
+                                                # Model forward pass - compute node logits, edge weights, and other outputs
                                                 node_logits, _, edge_weights, LR_logit, val, l, chayi_L, chayi_R, edge_index1 = model(
                                                     features_cuda_dis, features_cuda_hea, edge_index,
                                                     edgenet_input, edge_mask, features_cuda, region=region)
                                                 
-                                                # Identify top-k samples for focused training
+                                                # Identify top-k samples for focused training (hard example mining)
                                                 proportion1 = 0.1
                                                 num_size = int(len(train_ind) * proportion1)
                                                 topk_index = dl.find_k_largest_indices(num_size, train_ind, test_ind, [-1], val)
@@ -176,27 +176,27 @@ if __name__ == '__main__':
                                                 loss_cls = 0.9 * loss_fn(node_logits[train_ind], labels[train_ind]) + \
                                                            0.1 * loss_fn(node_logits[topk_index], labels[topk_index])
                                                 
-                                                # Combined loss function
+                                                # Combined loss function with edge-aware regularization
                                                 loss = 0.9 * loss_cls + \
                                                        0.1 * dl.nn_loss_k(edge_weights, one_shot, edge_mask_numpy[topk_index], train_labels)
                                                 
-                                                # Backward pass and optimization
+                                                # Backward pass and optimization step
                                                 loss.backward()
                                                 optimizer.step()
                                             
-                                            # Calculate training accuracy
+                                            # Calculate training accuracy and metrics
                                             correct_train, acc_train, spe, sen, spe_num, sen_num = accuracy(
                                                 node_logits[train_ind].detach().cpu().numpy(), y[train_ind])
                                             
-                                            # Evaluation mode
+                                            # Evaluation mode - no gradient computation
                                             model.eval()
                                             with torch.set_grad_enabled(False):
-                                                # Forward pass without gradient computation
+                                                # Forward pass without gradient computation for validation
                                                 node_logits, _, edge_weights, LR_logit, _, _, _, _, _ = model(
                                                     features_cuda_dis, features_cuda_hea, edge_index,
                                                     edgenet_input, edge_mask, features_cuda, region=region)
                                                 
-                                                # Track metrics at regular intervals
+                                                # Track metrics at regular intervals for monitoring
                                                 if epoch % 5 == 0 and epoch != 0:
                                                     loss_test_list.append(np.mean(loss_test))
                                                     loss_train_list.append(np.mean(loss_train))
@@ -204,7 +204,7 @@ if __name__ == '__main__':
                                                     epoch_list.append(c)
                                                     c += 1
                                                 
-                                                # Calculate test accuracy
+                                                # Calculate test accuracy on current mini-batch
                                                 a = epoch % 5
                                                 logits_test = node_logits[test_ind].detach().cpu().numpy()
                                                 correct_test, acc_test, spe, sen, spe_num, sen_num = accuracy(
@@ -212,19 +212,19 @@ if __name__ == '__main__':
                                                 acc_test_tu[a] = acc_test
                                             
                                             # Calculate additional evaluation metrics
-                                            auc_test = auc(logits_test, y[test_ind])
-                                            prf_test = prf(logits_test, y[test_ind])
-                                            icc = to_icc(logits_test, y[test_ind])
-                                            ka = kappa(logits_test, y[test_ind])
+                                            auc_test = auc(logits_test, y[test_ind])  # Area Under Curve
+                                            prf_test = prf(logits_test, y[test_ind])  # Precision, Recall, F1-score
+                                            icc = to_icc(logits_test, y[test_ind])  # Intraclass Correlation Coefficient
+                                            ka = kappa(logits_test, y[test_ind])  # Cohen's Kappa
                                             
-                                            # Print progress
+                                            # Print training progress and metrics
                                             print("Epoch: {},\tce loss: {:.5f},\ttrain acc: {:.5f},\ttest acc: {:.5f},\tspe: {:.5f},\tsne: {:.5f}".format(
                                                 epoch, loss.item(), acc_train.item(), acc_test.item(), spe, sen))
                                             
-                                            # Save model if performance improves
+                                            # Save model if performance improves (early stopping criteria)
                                             if (prf_test[2] > f1 and epoch > 9) or (prf_test[2] == f1 and aucs[fold] < auc_test and epoch > 9):
                                                 print("save!")
-                                                f1 = prf_test[2]
+                                                f1 = prf_test[2]  # Update best F1-score
                                                 acc = acc_test
                                                 aucs[fold] = auc_test
                                                 corrects[fold] = correct_test
@@ -235,13 +235,13 @@ if __name__ == '__main__':
                                                 kas[fold] = ka
                                                 iccs[fold] = icc
                                                 
-                                                # Save model checkpoint
+                                                # Save model checkpoint if path is specified
                                                 if opt.ckpt_path != '':
                                                     if not os.path.exists(opt.ckpt_path):
                                                         os.makedirs(opt.ckpt_path)
                                                     torch.save(model.state_dict(), fold_model_path)
                                         
-                                        # Print fold results
+                                        # Print fold results after training completion
                                         n = len(epoch_list)
                                         print("\r\n => Fold {} test accuacry {:.5f},auc {:.5f},f1 {:.5f} ".format(fold, accs[fold], aucs[fold], f1))
                                     
@@ -250,16 +250,16 @@ if __name__ == '__main__':
                                         print("  Number of testing samples %d" % len(test_ind))
                                         print('  Start testing...')
                                         
-                                        # Load saved model
+                                        # Load saved model weights from checkpoint
                                         model.load_state_dict(torch.load(fold_model_path))
                                         model.eval()  # Set model to evaluation mode
                                         
-                                        # Forward pass
+                                        # Forward pass for testing
                                         node_logits, res, edge_weights, LR_logit, _, _, _, _, _ = model(
                                             features_cuda_dis, features_cuda_hea, edge_index,
                                             edgenet_input, edge_mask, features_cuda, region=region)
                                         
-                                        # Prepare predictions for analysis
+                                        # Prepare predictions for analysis and saving
                                         logits_test = node_logits[test_ind].detach().cpu().numpy()
                                         res_test = res[test_ind].detach().cpu().numpy()
                                         se = y[test_ind]
@@ -267,7 +267,7 @@ if __name__ == '__main__':
                                         sad1 = np.column_stack((res_test, se))
                                         sad1 = np.column_stack((sad1, se))
                                         
-                                        # Calculate evaluation metrics
+                                        # Calculate comprehensive evaluation metrics
                                         corrects[fold], accs[fold], spe, sen, spe_num, sen_num = accuracy(
                                             node_logits[test_ind].detach().cpu().numpy(), y[test_ind])
                                         save(logits_test, y[test_ind], local=ids[test_ind], named=named, region=region, asdw=lx)
@@ -285,12 +285,12 @@ if __name__ == '__main__':
                                     elif opt.train == 0:
                                         evaluate()
                                 
-                                # Calculate and print execution time
+                                # Calculate and print execution time for performance monitoring
                                 end_time = time.time()
                                 execution_time = end_time - start_time
                                 print(f"Code running time: {execution_time / 10:.4f} seconds")
                                 
-                                # Print comprehensive results for the current region
+                                # Print comprehensive results with standard deviations for current region
                                 print("\r\n========================== Finish ==========================", region)
                                 print("acc:std", interval1_std(accs))
                                 print("auc:std", interval1_std(aucs))
@@ -299,7 +299,7 @@ if __name__ == '__main__':
                                 print("kappa:std", interval1_std(kas))
                                 print("f1:std", interval1_std(prfs[:, 2]))
                                 
-                                # Calculate and print overall performance metrics
+                                # Calculate and print overall performance metrics across all folds
                                 n_samples = X.shape[0] // region_number
                                 acc_nfold = np.sum(corrects) / (n_samples)
                                 print("=> Average test accuracy in {}-fold CV: {:.5f}".format(n_folds, acc_nfold))
