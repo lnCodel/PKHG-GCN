@@ -3,9 +3,6 @@
 This repository provides the official PyTorch implementation and data processing pipeline for the paper:
 
 **PKHG-GCN: Prior Knowledge and Homophily Graph Approximation Guided Graph Convolutional Network for Automated ASPECTS Scoring on Non-Contrast CT**
-
-The code is fully open-sourced to ensure the reproducibility of all experimental results reported in the paper.
-
 ---
 
 ## Requirements
@@ -29,6 +26,8 @@ Clone this repository:
 ```bash
 git clone https://github.com/lnCodel/PKHG-GCN.git
 ```
+
+---
 
 ### Data Preprocessing Pipeline
 
@@ -54,6 +53,8 @@ The implementation details are provided in ```dataloader.py```.
 Different Random Forest hyperparameters can be configured in dataloader.py to generate different feature subsets, which enables validation of the stability of the Random Forest–based feature selection.
 In addition, the script ```analyze_common_top_features.py``` is provided to analyze and compare the features selected under different Random Forest configurations.
 
+---
+
 ### Model Training and Evaluation
 
 The features selected by the Random Forest are used for training and testing the proposed PKHG-GCN model.
@@ -74,3 +75,4 @@ Evaluation:
 python train_eval_PKIG.py --train=0
 ```
 
+---
