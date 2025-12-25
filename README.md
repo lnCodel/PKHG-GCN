@@ -78,4 +78,7 @@ If you have obtained the results for each region through the above training and 
 ```bash
 python python train_eval_PKHG.py --train=3
 ```
+It can help you compute the dichotomized ASPECTS scores (≤ 4 vs. > 4) and the trichotomized ASPECTS scores ([0–4] vs. [5–7] vs. [8–10]). Of course, you can also modify the code to obtain results based on any thresholding scheme of interest.
+
+
 ---
