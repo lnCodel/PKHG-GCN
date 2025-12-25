@@ -30,10 +30,10 @@ We applyed a template of manually traced ASPECTS contours for non-linear registr
 ### 1.3 Pre-processing
 After registration is completed, we extracted radiomics features from each region. "batchprocessing.py" shows the details.  <br />
 
-### 1.3 Feature selection
+### 1.4 Feature selection
 We have employed a Random Forest algorithm for feature selection to enhance the performance of our model. "dataloader.py" shows the details.
 
-### 1.4 Train and Test
+### 1.5 Train and Test
 Ultimately, we utilized the features selected by the Random Forest for training and testing our model. The complete code can be accessed in the file "train_eval_PKIG.py".
 
 ## Acknowledgements
