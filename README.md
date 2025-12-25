@@ -28,38 +28,49 @@ Clone this repository:
 
 ```bash
 git clone https://github.com/lnCodel/PKHG-GCN.git
+```
 
+###  1. Data Preprocessing Pipeline
 
-### 1. Data Preprocessing Pipeline
-1.1 Skull Stripping
+#### Skull Stripping
 
-After converting the DICOM files of the dataset to NIfTI format, skull stripping is performed following the instructions provided in the following repository:
+After converting the DICOM files of the dataset to NIfTI format, skull stripping is performed following the instructions provided in the following repository: https://github.com/WuChanada/StripSkullCT
 
-https://github.com/WuChanada/StripSkullCT
-
-1.2 Registration
+#### Registration
 
 A template with manually traced ASPECTS contours is applied to all NCCT scans using non-linear registration.
-The implementation details are provided in Reg.py.
+The implementation details are provided in ```Reg.py```.
 
-1.3 Radiomics Feature Extraction
+#### Radiomics Feature Extraction
 
 After registration, radiomics features are extracted from each ASPECTS region.
-The detailed implementation can be found in batchprocessing.py.
+The detailed implementation can be found in ```batchprocessing.py```.
 
-1.4 Feature Selection
+#### Feature Selection
 
 A Random Forest (RF) algorithm is employed for feature selection to enhance the performance of the proposed model.
-The implementation details are provided in dataloader.py.
+The implementation details are provided in ```dataloader.py```.
 
 Different Random Forest hyperparameters can be configured in dataloader.py to generate different feature subsets, which enables validation of the stability of the Random Forest–based feature selection.
-In addition, the script analyze_common_top_features.py is provided to analyze and compare the features selected under different Random Forest configurations.
+In addition, the script ```analyze_common_top_features.py``` is provided to analyze and compare the features selected under different Random Forest configurations.
 
-1.5 Model Training and Evaluation
+### Model Training and Evaluation
 
 The features selected by the Random Forest are used for training and testing the proposed PKHG-GCN model.
-The complete training and evaluation pipeline is implemented in train_eval_PKIG.py.
+The complete training and evaluation pipeline is implemented in ```train_eval_PKIG.py```.
 
-Acknowledgements
+After completing the data preprocessing, run the following command:
 
-We sincerely thank the authors of EV-GCN for their valuable contributions, which inspired parts of our implementation.
+```bash
+python train_eval_PKIG.py --train=1
+```
+To get a detailed description for available arguments, please run:
+
+```bash
+python train_eval_PKIG.py --help
+```
+Evaluation:
+```bash
+python train_eval_PKIG.py --train=0
+```
+
